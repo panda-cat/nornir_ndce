@@ -11,10 +11,10 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10' # 或您使用的 Python 版本
 
@@ -27,7 +27,7 @@ jobs:
       run: pyinstaller --onefile nornir_script.py # 将 your_script_name.py 替换为您的脚本名称
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: windows-executable
         path: dist # 将 your_script_name.exe 替换为您的可执行文件名
