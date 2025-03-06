@@ -1,0 +1,33 @@
+name: Build Windows Executable
+
+on:
+  push:
+    branches:
+      - main # 或您的主要分支名稱
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10' # 或您使用的 Python 版本
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller nornir nornir-netmiko nornir-utils
+
+    - name: Run PyInstaller
+      run: pyinstaller --onefile nornir_script.py # 将 your_script_name.py 替换为您的脚本名称
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: windows-executable
+        path: dist # 将 your_script_name.exe 替换为您的可执行文件名
