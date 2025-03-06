@@ -11,6 +11,8 @@ import os
 nr = InitNornir(config_file="config.yaml")
 
 def exec_cmd(task):
+    task.host["failed_cmd"] = None
+    
     cmds = task.host.groups[0].data.get('multi_cmds')
 
     if cmds:
