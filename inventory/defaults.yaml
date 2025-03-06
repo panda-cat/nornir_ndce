@@ -1,0 +1,10 @@
+---
+username: h3c
+password: cisco,123
+port: 22
+platform: hp_comware
+
+username: cisco
+password: cisco,123
+port: 22
+platform: cisco_ios

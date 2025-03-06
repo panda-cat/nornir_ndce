@@ -1,0 +1,14 @@
+---
+h3c:
+  data:
+    multi_cmds:
+      - display current-configure
+      - display version
+huawei:
+  data:
+    multi_cmds:
+      - display current-configure      
+cisco:
+  data:
+    multi_cmds:
+      - show running-config

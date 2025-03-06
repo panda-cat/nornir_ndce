@@ -1,0 +1,23 @@
+---
+sw1:
+  hostname: 192.168.0.1
+  username: root
+  password: 'qwer1234'
+  port: 22
+  platform: huawei
+  groups:
+    - huawei
+sw2:
+  hostname: 192.168.1.1
+  port: 23
+  platform: hp_comware_telnet
+  groups:
+    - h3c
+sw3:
+  hostname: 192.168.2.1
+  username: root
+  password: 'root'
+  port: 23
+  platform: cisco_ios_telnet
+  groups:
+    - cisco
