@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import nornir_netmiko
 from nornir import InitNornir
 from nornir_netmiko import netmiko_send_command
 from nornir_utils.plugins.tasks.files import write_file
