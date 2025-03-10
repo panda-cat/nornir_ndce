@@ -24,7 +24,7 @@ jobs:
         pip install pyinstaller nornir nornir_netmiko nornir-utils
 
     - name: Run PyInstaller
-      run: pyinstaller --onefile --add-data "config.yaml;." --hidden-import nornir.plugins --hidden-import nornir.plugins.inventory --collect-all nornir nornir_script.py # 将 your_script_name.py 替换为您的脚本名称
+      run: pyinstaller --onefile --add-data "config.yaml;." --hidden-import nornir_netmiko --hidden-import nornir.plugins --hidden-import nornir.plugins.inventory --collect-all nornir nornir_script.py # 将 your_script_name.py 替换为您的脚本名称
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
