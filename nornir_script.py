@@ -3,7 +3,7 @@
 
 import nornir_netmiko
 from nornir import InitNornir
-from nornir_netmiko import netmiko_send_command
+from nornir_netmiko.tasks.netmiko_multiline import netmiko_multiline
 from nornir_utils.plugins.tasks.files import write_file
 from nornir_utils.plugins.functions import print_result,print_title
 import datetime
@@ -14,7 +14,7 @@ def exec_cmd(task):
     cmds = task.host.groups[0].data.get('multi_cmds')
 
     for cmd in cmds:
-            result = task.run(netmiko_send_command,command_string=cmd,max_loops=500)
+            result = task.run(netmiko_multiline,commands=cmd,max_loops=500)
             print(result)
             output = result.result
 
