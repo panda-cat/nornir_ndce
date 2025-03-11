@@ -3,7 +3,7 @@
 
 import nornir_netmiko
 from nornir import InitNornir
-from nornir_netmiko.tasks.netmiko_multiline import netmiko_multiline
+from nornir_netmiko import netmiko_multiline
 from nornir_utils.plugins.tasks.files import write_file
 from nornir_utils.plugins.functions import print_result,print_title
 import datetime
