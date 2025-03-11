@@ -1,32 +1,54 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-import nornir_netmiko
-from nornir import InitNornir
-from nornir_netmiko import netmiko_multiline
-from nornir_utils.plugins.tasks.files import write_file
-from nornir_utils.plugins.functions import print_result,print_title
-import datetime
+from datetime import datetime
 import os
+import logging
+
+from nornir import InitNornir
+from nornir.core.task import Result
+from nornir_netmiko import netmiko_send_config, netmiko_get_connection
+from nornir_utils.plugins.tasks.files import write_file
+from tqdm import tqdm
 
 nr = InitNornir(config_file="config.yaml")
+
 def exec_cmd(task):
-    cmds = task.host.groups[0].data.get('multi_cmds')
+    try:
+        cmds = task.host.groups[0].data.get('multi_cmds')
+        name = task.host.name
+        ip = task.host.hostname
+        time_str = datetime.now().strftime("%H%M%S")
 
-    for cmd in cmds:
-            result = task.run(netmiko_multiline,commands=cmd,max_loops=500)
-            print(result)
-            output = result.result
+        # 获取 Netmiko 连接
+        net_conn = task.host.get_connection('netmiko', task.nornir.config)
 
-            file_name = datetime.datetime.now().strftime('%Y-%m-%d')
-            if not os.path.exists(file_name):
-                os.mkdir(file_name)
-            write_result = task.run(write_file,
-                                    filename=file_name+'/'f'{task.host.hostname}.txt',
+        # 特权模式判断
+        if net_conn.secret:
+            net_conn.enable()
+
+        result = task.run(task=netmiko_send_config, config_commands=cmds)
+
+        output = result[0].result
+
+        file_path = os.path.normpath(
+            os.path.join(nr.config.core.inventory.options.host_file,
+                         f'{name}_{ip}_{time_str}.txt')
+        )
+
+        config_res_write = task.run(task=write_file,
+                                    filename=file_path,
                                     content=output,
-                                    )
+                                    severity_level=logging.DEBUG)
 
+        pbar.update()
+        return Result(host=task.host, result=output, changed=True)
 
-print_title("正在备份交换机配置.....")
+    except Exception as e:
+        name = task.host.name
+        ip = task.host.hostname
+        pbar.update()
+        error_message = f"配置失败：设备：{name}，IP：{ip}，错误信息：{str(e)}"
+        logging.error(error_message)
+        return Result(host=task.host, result=error_message, failed=True)
+
+# 假设 nr 是已经初始化的 Nornir 对象
+pbar = tqdm(total=len(nr.inventory.hosts))
 results = nr.run(task=exec_cmd)
-print_result(results)
