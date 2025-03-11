@@ -4,7 +4,7 @@ import logging
 
 from nornir import InitNornir
 from nornir.core.task import Result
-from nornir_netmiko import netmiko_send_config, netmiko_get_connection
+from nornir_netmiko import netmiko_send_config
 from nornir_utils.plugins.tasks.files import write_file
 from tqdm import tqdm
 
