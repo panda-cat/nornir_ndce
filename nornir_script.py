@@ -8,6 +8,11 @@ from nornir_netmiko import netmiko_send_config
 from nornir_utils.plugins.tasks.files import write_file
 from tqdm import tqdm
 
+from nornir.core.plugins.connections import ConnectionPluginRegister
+from nornir_netmiko.connections import Netmiko
+
+ConnectionPluginRegister.register("netmiko", Netmiko)
+
 nr = InitNornir(config_file="config.yaml")
 
 def exec_cmd(task):
