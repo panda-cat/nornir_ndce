@@ -58,11 +58,7 @@ jobs:
       # 9. 步骤 7: 上传 ZIP 文件作为 Release 的附件
       # 这是最关键的一步，它会将最终的 zip 文件附加到你创建的 GitHub Release 中
       - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./dist-package/aio_net_runner_windows.zip
-          asset_name: aio_net_runner_windows.zip
-          asset_content_type: application/zip
+        run: |
+          gh release upload ${{ github.event.release.tag_name }} ./dist-package/aio_net_runner_windows.zip --clobber
