@@ -1,0 +1,37 @@
+# commands.yaml
+#
+# 在这里定义每个设备平台需要执行的巡检命令。
+# 键 (key) 是 Netmiko 的 platform 字符串。
+# 值 (value) 是一个命令列表。
+---
+cisco_ios:
+  - "show version"
+  - "show ip interface brief"
+  - "show running-config | i hostname"
+  - "show inventory"
+  - "show cdp neighbors detail"
+
+huawei:
+  - "display version"
+  - "display ip interface brief"
+  - "display current-configuration | i sysname"
+  - "display elabel"
+  - "display lldp neighbor brief"
+
+h3c_comware:
+  - "display version"
+  - "display brief interface"
+  - "display current-configuration | i sysname"
+  - "display device manuinfo"
+
+ruckus_fastiron:
+  - "show version"
+  - "show ip interface"
+  - "show running-config | i hostname"
+  - "show chassis"
+  - "show fdp neighbors detail"
+
+# 您可以继续在这里为其他厂商添加条目
+# juniper_junos:
+#   - "show version"
+#   - "show interfaces terse"
