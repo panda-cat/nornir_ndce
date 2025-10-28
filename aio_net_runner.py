@@ -5,17 +5,9 @@ import yaml
 import argparse
 import traceback
 
-# ==================== 1. 解决 PyInstaller 打包问题的显式导入 ====================
-# 这些导入对 PyInstaller 至关重要，可以防止 "ImportError"
-from nornir.core import Nornir
-from nornir.core.configuration import Config
-from nornir.plugins.inventory.simple import SimpleInventory
-from nornir.plugins.runners.threaded import ThreadedRunner
-# ==============================================================================
-
 from nornir import InitNornir
 from nornir.core.task import Result
-from nornir_netmiko.tasks import netmiko_send_command, netmiko_send_config
+from nornir_netmiko import netmiko_send_command, netmiko_send_config
 
 # --- 您的所有辅助函数保持不变 ---
 OUTPUT_DIR = "reports"
