@@ -1,116 +1,68 @@
-name: Build Multi-Platform Executables
+# .github/workflows/build-exe.yml
 
+name: Build Python EXE for Windows
+
+# 1. 触发器：这个 workflow 会在创建新的 "Release" 时运行
 on:
-  push:
-    tags:
-      - 'v*' # 当推送版本标签时触发 (例如 v1.0.0)
-  workflow_dispatch: # 允许手动运行
+  release:
+    types: [created]
 
 jobs:
-  build:
-    # 使用矩阵策略在不同的操作系统上运行作业
-    strategy:
-      fail-fast: false # 允许一个平台的构建失败，而其他平台继续
-      matrix:
-        # 定义要运行的操作系统（GitHub Actions Runner）
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        
-        # 可选：如果你需要为每个平台定制更多参数，可以添加一个独立的 matrix 变量，例如：
-        # config: 
-        #   - { os: ubuntu-latest, name: "linux", extension: "" }
-        #   - { os: windows-latest, name: "windows", extension: ".exe" }
-        #   - { os: macos-latest, name: "macos", extension: "" }
-
-    runs-on: ${{ matrix.os }}
+  build-windows:
+    # 2. 运行环境：使用最新的 Windows 虚拟机
+    runs-on: windows-latest
 
     steps:
-      - name: Checkout repository
+      # 3. 步骤 1: 检出代码
+      # 获取你的仓库代码到 Actions 运行器中
+      - name: Check out repository code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        # 根据你的项目需求设置 Python 版本
+      # 4. 步骤 2: 设置 Python 环境
+      # 安装 Python 3.9 (或你需要的版本)
+      - name: Set up Python 3.9
         uses: actions/setup-python@v5
         with:
-          python-version: '3.x' 
+          python-version: 3.9
 
+      # 5. 步骤 3: 安装依赖项
+      # 使用 pip 安装 requirements.txt 中定义的所有库
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pyinstaller # 安装 PyInstaller
-          # 如果你有 requirements.txt，也安装其他依赖
           pip install -r requirements.txt
 
-      - name: Define App Variables
-        # 定义应用名称和主脚本路径，确保它们在所有平台中保持一致
+      # 6. 步骤 4: 使用 PyInstaller 编译 EXE
+      # --onefile: 将所有东西打包成一个单独的 exe 文件
+      # --name: 指定输出的 exe 文件名
+      - name: Build executable with PyInstaller
+        run: pyinstaller --onefile --name aio_net_runner aio_net_runner.py
+
+      # 7. 步骤 5: 准备分发文件
+      # 创建一个名为 'dist-package' 的目录，并将需要分发的所有文件都放进去
+      # 这是最佳实践，确保用户下载的是一个完整的、可用的包
+      - name: Prepare distribution package
         run: |
-          echo "APP_NAME=AioNetMGT" >> $GITHUB_ENV       # 替换为你的应用名称 (例如：YourApp)
-          echo "SCRIPT_PATH=aio_net_runner.py" >> $GITHUB_ENV # 替换为你的主脚本路径
-        shell: bash
-
-      - name: Build executable
+          mkdir dist-package
+          copy dist\aio_net_runner.exe dist-package\
+          copy config.yaml dist-package\
+          copy commands.yaml dist-package\
+          xcopy inventory dist-package\inventory\ /E /I
+      
+      # 8. 步骤 6: 将分发包压缩成 ZIP 文件
+      - name: Archive distribution package as zip
         run: |
-          # PyInstaller 的 --name 参数设置为 APP_NAME
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            PYINSTALLER_OPTS="--onefile"
-          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            # macOS: 使用 --windowed 创建 .app Bundle
-            PYINSTALLER_OPTS="--onefile --windowed" 
-          else
-            # Linux (ubuntu-latest):
-            PYINSTALLER_OPTS="--onefile"
-          fi
-          
-          pyinstaller ${{ env.SCRIPT_PATH }} $PYINSTALLER_OPTS --name ${{ env.APP_NAME }}
-        shell: bash
-
-      - name: Rename and prepare artifact
-        run: |
-          PLATFORM_NAME=""
-          FINAL_PATH=""
-          
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            PLATFORM_NAME="windows"
-            # Windows 的可执行文件是 dist/APP_NAME.exe
-            FINAL_PATH="dist/${{ env.APP_NAME }}.exe"
-            echo "EXECUTABLE_NAME=${{ env.APP_NAME }}_${PLATFORM_NAME}.exe" >> $GITHUB_ENV
-            
-            # 重命名文件
-            mv "${FINAL_PATH}" "${{ env.APP_NAME }}_${PLATFORM_NAME}.exe"
-            echo "ARTIFACT_PATH=${{ env.APP_NAME }}_${PLATFORM_NAME}.exe" >> $GITHUB_ENV
-            
-          elif [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            PLATFORM_NAME="macos"
-            # macOS 的应用是一个文件夹：dist/APP_NAME.app
-            FINAL_PATH="dist/${{ env.APP_NAME }}.app"
-            ZIP_NAME="${{ env.APP_NAME }}_${PLATFORM_NAME}.zip"
-
-            # 压缩 .app 文件夹
-            zip -r "${ZIP_NAME}" "${FINAL_PATH}"
-            
-            echo "EXECUTABLE_NAME=${ZIP_NAME}" >> $GITHUB_ENV
-            echo "ARTIFACT_PATH=${ZIP_NAME}" >> $GITHUB_ENV
-            
-          else
-            PLATFORM_NAME="linux"
-            # Linux 的可执行文件是 dist/APP_NAME
-            FINAL_PATH="dist/${{ env.APP_NAME }}"
-            FINAL_NAME="${{ env.APP_NAME }}_${PLATFORM_NAME}"
-            
-            # 确保 Linux 可执行文件具有执行权限
-            chmod +x "${FINAL_PATH}"
-            
-            # 重命名文件
-            mv "${FINAL_PATH}" "${FINAL_NAME}"
-            
-            echo "EXECUTABLE_NAME=${FINAL_NAME}" >> $GITHUB_ENV
-            echo "ARTIFACT_PATH=${FINAL_NAME}" >> $GITHUB_ENV
-          fi
-          
-        # 注意：使用 bash shell，即使在 Windows 上，也能更好地处理文件路径和变量
-        shell: bash
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+          cd dist-package
+          7z a -tzip aio_net_runner_windows.zip *
+      
+      # 9. 步骤 7: 上传 ZIP 文件作为 Release 的附件
+      # 这是最关键的一步，它会将最终的 zip 文件附加到你创建的 GitHub Release 中
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: ${{ env.EXECUTABLE_NAME }}
-          path: ${{ env.ARTIFACT_PATH }}
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./dist-package/aio_net_runner_windows.zip
+          asset_name: aio_net_runner_windows.zip
+          asset_content_type: application/zip
