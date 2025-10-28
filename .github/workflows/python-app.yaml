@@ -36,7 +36,7 @@ jobs:
       # --onefile: 将所有东西打包成一个单独的 exe 文件
       # --name: 指定输出的 exe 文件名
       - name: Build executable with PyInstaller
-        run: pyinstaller --onefile --name aio_net_runner aio_net_runner.py
+        run: pyinstaller --onefile --hidden-import nornir.core --hidden-import nornir.core.configuration --hidden-import nornir.plugins.inventory.dict_inventory --name aio_net_runner aio_net_runner.py
 
       # 7. 步骤 5: 准备分发文件
       # 创建一个名为 'dist-package' 的目录，并将需要分发的所有文件都放进去
