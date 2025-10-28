@@ -1,14 +1,10 @@
+# inventory/groups.yaml
 ---
-h3c:
-  data:
-    multi_cmds:
-      - display current-configure
-      - display version
-huawei:
-  data:
-    multi_cmds:
-      - display current-configure      
-cisco:
-  data:
-    multi_cmds:
-      - show running-config
+cisco_ios:
+  platform: "cisco_ios"
+
+cisco_xr:
+  platform: "cisco_xr"
+
+juniper_junos:
+  platform: "juniper_junos"
