@@ -7,8 +7,104 @@ from nornir import InitNornir
 from nornir.core.task import Result
 from nornir_netmiko.tasks import netmiko_send_command, netmiko_send_config
 
-# ... (load_command_map, device_operation_task, generate_report 函数保持不变) ...
-# 为了简洁，这里省略了之前未改变的函数代码
+# 定义报告输出目录
+OUTPUT_DIR = "reports"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+def load_command_map(file_path):
+    """从指定的 YAML 文件加载命令映射。"""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return yaml.safe_load(f)
+    except FileNotFoundError:
+        print(f"!!! 错误: 命令文件 '{file_path}' 未找到。")
+        return None
+    except Exception as e:
+        print(f"!!! 错误: 加载或解析 '{file_path}' 时出错: {e}")
+        return None
+
+def device_operation_task(task, command_map, nornir_task_function):
+    """
+    一个通用的 Nornir 任务，可以执行命令或配置。
+    
+    Args:
+        task: Nornir 任务对象.
+        command_map: 包含平台->命令映射的字典.
+        nornir_task_function: 要执行的 nornir-netmiko 函数
+                              (例如, netmiko_send_command 或 netmiko_send_config).
+    """
+    platform = task.host.platform
+    commands_to_run = command_map.get(platform)
+
+    if not commands_to_run:
+        print(f"--- 警告: 在命令文件中未找到 {task.host.name} ({platform}) 的命令定义，已跳过。")
+        return Result(host=task.host, result=f"Platform '{platform}' not supported.", failed=True)
+
+    # 2. 根据传入的函数动态执行
+    if nornir_task_function == netmiko_send_config:
+        # netmiko_send_config 接收一个命令列表
+        result = task.run(
+            name="Executing Config Set",
+            task=nornir_task_function,
+            config_commands=commands_to_run
+        )
+        # 将整个配置块的结果存储起来
+        task.host["op_results"] = result.result
+    else:
+        # netmiko_send_command 是一条一条执行的
+        task.host["op_results"] = "" # 初始化一个空字符串来累积结果
+        for cmd in commands_to_run:
+            try:
+                result = task.run(
+                    name=f"Executing Command: {cmd}",
+                    task=nornir_task_function,
+                    command_string=cmd,
+                    enable=True,
+                    read_timeout=90
+                )
+                # 将每条命令的结果存储起来
+                task.host[cmd] = result.result
+            except Exception as e:
+                task.host[cmd] = f"--- 命令执行失败: {e} ---"
+
+def generate_report(host, command_map, results, mode):
+    """为单个主机生成报告文件。"""
+    hostname = host.name
+    platform = host.platform
+    filename = os.path.join(OUTPUT_DIR, f"{hostname}.log")
+
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write(f"--- 报告 for {hostname} ({platform}) | Mode: {mode} ---\n\n")
+
+        if results[hostname].failed:
+            f.write("!!! 操作失败 !!!\n")
+            err_result = results[hostname][0] # 通常第一个任务是失败的根源
+            f.write(f"任务: {err_result.name}\n")
+            if err_result.exception:
+                f.write(f"错误详情: {err_result.exception}\n")
+            else:
+                f.write(f"结果: {err_result.result}\n")
+            return # 失败了就不用继续了
+
+        # 3. 根据模式生成不同的报告内容
+        if mode == "config-set":
+            f.write("--- 配置命令已下发 ---\n")
+            f.write("下发命令列表:\n")
+            commands_sent = command_map.get(platform, [])
+            for cmd in commands_sent:
+                f.write(f"  - {cmd}\n")
+            f.write("\n--- 设备返回结果 ---\n")
+            f.write(host.get("op_results", "无设备返回。"))
+        else: # send-cmd mode
+            commands_run = command_map.get(platform, [])
+            for cmd in commands_run:
+                output = host.get(cmd, f"--- 未找到命令 '{cmd}' 的输出 ---")
+                f.write(f"--- 执行命令: {cmd} ---\n")
+                f.write(output)
+                f.write("\n\n")
+
+    print(f"报告已生成: {filename}")
+
 def load_command_map(file_path):
     """从指定的 YAML 文件加载命令映射。"""
     try:
