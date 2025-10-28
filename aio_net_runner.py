@@ -227,13 +227,11 @@ def main():
         print("无法加载命令，程序退出。")
         return
 
-    # ======================== 终极解决方案代码 ========================
     try:
         print("DEBUG: Manually loading inventory files with UTF-8 encoding...")
         
-        # 1. 手动加载所有清单文件
         with open("inventory/hosts.yaml", "r", encoding="utf-8") as f:
-            hosts_dict = yaml.safe_load(f) or {} # 如果文件为空，则返回空字典
+            hosts_dict = yaml.safe_load(f) or {}
             
         with open("inventory/groups.yaml", "r", encoding="utf-8") as f:
             groups_dict = yaml.safe_load(f) or {}
@@ -243,7 +241,7 @@ def main():
 
         print("DEBUG: All inventory files loaded successfully.")
 
-        # 2. 构建 DictInventory 需要的配置字典
+        # 构建 DictInventory 需要的配置字典
         nornir_config = {
             "core": {"num_workers": 100},
             "inventory": {
@@ -256,18 +254,21 @@ def main():
             }
         }
         
-        # 3. 将构建好的配置字典传递给 Nornir
         print("DEBUG: Initializing Nornir from dictionary...")
-        nr = InitNornir(config=nornir_config)
+        
+        # ==================== 关键修正 ====================
+        # 使用 ** 操作符解包字典，将其作为关键字参数传递
+        nr = InitNornir(**nornir_config)
+        # ================================================
+
         print("DEBUG: Nornir initialized successfully.")
 
     except FileNotFoundError as e:
         print(f"!!! 致命错误: 找不到清单文件 {e.filename}。请确保 inventory 目录及文件存在。")
         return
     except Exception as e:
-        print(f"!!! 致命错误: 加载清单文件时出错: {e}")
+        print(f"!!! 致命错误: 加载或初始化时出错: {e}")
         return
-    # =================================================================
 
     results = nr.run(
         name=f"Device Operation: {mode}",
