@@ -1,12 +1,15 @@
+    
+# config.yaml
 ---
- inventory:
-     plugin: SimpleInventory
-     options:
-         host_file: "inventory/hosts.yaml"
-         group_file: "inventory/groups.yaml"
-         defaults_file: "inventory/defaults.yaml"
- runner:
-     plugin: threaded
-     options:
-         num_workers: 20
+core:
+  num_workers: 100  # 并发线程数
 
+inventory:
+  plugin: SimpleInventory  # 使用Nornir内置的简单清单插件
+  options:
+    # 下面这三个选项告诉Nornir去哪里找清单文件
+    host_file: "inventory/hosts.yaml"
+    group_file: "inventory/groups.yaml"
+    defaults_file: "inventory/defaults.yaml"
+
+  
