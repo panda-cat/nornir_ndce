@@ -243,7 +243,7 @@ def main():
 
         # 构建 DictInventory 需要的配置字典
         nornir_config = {
-            "core": {"num_workers": 100},
+            "num_workers": 100,
             "inventory": {
                 "plugin": "DictInventory",
                 "options": {
