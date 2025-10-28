@@ -193,19 +193,14 @@ def main():
     """主函数，包含命令行解析。"""
     parser = argparse.ArgumentParser(
         description="多厂商网络设备自动化工具。默认执行 'send-cmd' (巡检) 模式。",
-        formatter_class=argparse.RawTextHelpFormatter # 保持帮助信息格式
+        formatter_class=argparse.RawTextHelpFormatter
     )
     parser.add_argument(
         "--cmd-file",
         required=True,
         help="[必需] 指定包含命令的 YAML 文件路径。"
     )
-    
-    # 1. 创建一个互斥组
-    # 这确保了组内的参数不能同时出现
     mode_group = parser.add_mutually_exclusive_group()
-    
-    # 2. 将模式参数添加到组中
     mode_group.add_argument(
         "--send-cmd",
         action="store_true",
@@ -216,17 +211,12 @@ def main():
         action="store_true",
         help="使用 'config-set' 模式 (netmiko_send_config) 下发配置类命令。"
     )
-    
     args = parser.parse_args()
 
-    # 3. 决定运行模式
-    # 逻辑保持不变，但现在由 argparse 保证了只有一个为 True
     if args.config_set:
         mode = "config-set"
         nornir_task = netmiko_send_config
     else:
-        # 如果 --config-set 未指定，则默认为 send-cmd 模式
-        # (这包括了明确指定 --send-cmd 和两个都未指定的情况)
         mode = "send-cmd"
         nornir_task = netmiko_send_command
     
@@ -237,8 +227,48 @@ def main():
         print("无法加载命令，程序退出。")
         return
 
-    nr = InitNornir(config_file="config.yaml")
-    
+    # ======================== 终极解决方案代码 ========================
+    try:
+        print("DEBUG: Manually loading inventory files with UTF-8 encoding...")
+        
+        # 1. 手动加载所有清单文件
+        with open("inventory/hosts.yaml", "r", encoding="utf-8") as f:
+            hosts_dict = yaml.safe_load(f) or {} # 如果文件为空，则返回空字典
+            
+        with open("inventory/groups.yaml", "r", encoding="utf-8") as f:
+            groups_dict = yaml.safe_load(f) or {}
+
+        with open("inventory/defaults.yaml", "r", encoding="utf-8") as f:
+            defaults_dict = yaml.safe_load(f) or {}
+
+        print("DEBUG: All inventory files loaded successfully.")
+
+        # 2. 构建 DictInventory 需要的配置字典
+        nornir_config = {
+            "core": {"num_workers": 100},
+            "inventory": {
+                "plugin": "DictInventory",
+                "options": {
+                    "hosts": hosts_dict,
+                    "groups": groups_dict,
+                    "defaults": defaults_dict
+                }
+            }
+        }
+        
+        # 3. 将构建好的配置字典传递给 Nornir
+        print("DEBUG: Initializing Nornir from dictionary...")
+        nr = InitNornir(config=nornir_config)
+        print("DEBUG: Nornir initialized successfully.")
+
+    except FileNotFoundError as e:
+        print(f"!!! 致命错误: 找不到清单文件 {e.filename}。请确保 inventory 目录及文件存在。")
+        return
+    except Exception as e:
+        print(f"!!! 致命错误: 加载清单文件时出错: {e}")
+        return
+    # =================================================================
+
     results = nr.run(
         name=f"Device Operation: {mode}",
         task=device_operation_task,
